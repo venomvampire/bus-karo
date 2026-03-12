@@ -1,100 +1,129 @@
 "use client";
 import { useState, useEffect } from "react";
+import AdBanner from "../components/AdBanner"; // Make sure your AdBanner component is saved!
+
+// Defining the shape of our advanced API response
+interface PlatformOffer {
+  name: string;
+  price: number;
+  original_price: number;
+  coupon: string;
+  seats_left: number | string;
+  link: string;
+}
 
 interface BusResult {
-  id: string; operator: string; departure: string; price: number; platform: string; link: string;
+  id: string;
+  operator: string;
+  bus_type: string;
+  departure: string;
+  platforms: PlatformOffer[];
+  average_market_price: number;
+  cheapest_price: number;
+  savings_percentage: number;
 }
 
 interface UserProfile {
-  full_name: string; phone_number: string; email: string;
+  full_name: string;
+  phone_number: string;
+  email: string;
 }
 
 export default function Home() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
+  
   const [results, setResults] = useState<BusResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<{origin: string, destination: string}[]>([]);
   
-  // New state to hold the real user!
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [recentSearches, setRecentSearches] = useState<{origin: string, destination: string}[]>([]);
 
-  // When the page loads, check if they are logged in
+  // 1. Fetch User and History on Load
   useEffect(() => {
     const fetchUserAndHistory = async () => {
-      const token = localStorage.getItem("token"); // Assuming you save the JWT token here during login
+      const token = localStorage.getItem("token");
       if (token) {
-        // Fetch User Profile
+        // Simulating the backend fetch for now
         setUser({
-          full_name: localStorage.getItem("userName") || "User",
+          full_name: localStorage.getItem("userName") || "Rakshit",
           phone_number: "Stored Securely",
           email: "user@example.com"
         });
-
-        // Fetch Recent Searches
-        try {
-          const res = await fetch("http://localhost:8000/api/user/history", {
-            headers: { "Authorization": `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const history = await res.json();
-            setRecentSearches(history);
-          }
-        } catch (error) {
-          console.error("Failed to load history");
-        }
+        
+        // Simulating history fetch
+        setRecentSearches([
+          { origin: "Delhi", destination: "Jaipur" },
+          { origin: "Lucknow", destination: "Varanasi" }
+        ]);
       }
     };
     fetchUserAndHistory();
   }, []);
 
-  // 2. Save history when they search
+  // 2. Handle Search Submission
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
     setHasSearched(true);
 
-    const token = localStorage.getItem("token");
-    if (token) {
-      // Silently save the search to the database in the background
-      fetch("http://localhost:8000/api/user/history", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+    // Simulating the advanced API response
+    setTimeout(() => {
+      setResults([
+        {
+          id: "1", operator: "Zingbus Premium", bus_type: "A/C Sleeper (2+1)", departure: "21:30",
+          average_market_price: 580, cheapest_price: 499, savings_percentage: 14,
+          platforms: [
+            { name: "redBus", price: 499, original_price: 600, coupon: "REDBUS20", seats_left: 12, link: "https://redbus.in" },
+            { name: "AbhiBus", price: 550, original_price: 600, coupon: "ABHIFIRST", seats_left: 12, link: "https://abhibus.com" }
+          ]
         },
-        body: JSON.stringify({ origin, destination })
-      });
-    }
-
-    // ... keep your existing setTimeout or API fetch logic here to load the bus results ...
+        {
+          id: "2", operator: "IntrCity SmartBus", bus_type: "Volvo Multi-Axle", departure: "22:15",
+          average_market_price: 800, cheapest_price: 750, savings_percentage: 6,
+          platforms: [
+            { name: "Paytm", price: 750, original_price: 850, coupon: "PAYTMBUS", seats_left: 4, link: "https://paytm.com" }
+          ]
+        },
+        {
+          id: "3", operator: "RSRTC Express", bus_type: "Non A/C Seater", departure: "23:00",
+          average_market_price: 350, cheapest_price: 300, savings_percentage: 14,
+          platforms: [
+            { name: "redBus", price: 300, original_price: 350, coupon: "NONE", seats_left: 20, link: "https://redbus.in" }
+          ]
+        },
+        {
+          id: "4", operator: "NueGo Electric", bus_type: "A/C Seater", departure: "23:45",
+          average_market_price: 600, cheapest_price: 500, savings_percentage: 16,
+          platforms: [
+            { name: "AbhiBus", price: 500, original_price: 650, coupon: "NUEGO50", seats_left: 8, link: "https://abhibus.com" }
+          ]
+        }
+      ]);
+      setIsSearching(false);
+    }, 1500);
   };
 
+  // 3. Handle Booking Auto-Fill Logic
   const handleCopyAndBook = (link: string) => {
     if (user) {
-      // If logged in, use THEIR real details!
       const userDetails = `Name: ${user.full_name}, Phone: ${user.phone_number}`;
       navigator.clipboard.writeText(userDetails);
       alert(`✅ ${user.full_name}'s details copied to clipboard! Paste them on the booking page.`);
       window.open(link, "_blank");
     } else {
-      // If NOT logged in, warn them but still let them book
       const wantToLogin = confirm("You are not logged in! We can't auto-fill your details. Do you want to log in first?");
-      if (wantToLogin) {
-        window.location.href = "/login"; // Send to login page
-      } else {
-        window.open(link, "_blank"); // Let them book manually
-      }
+      if (wantToLogin) window.location.href = "/login";
+      else window.open(link, "_blank");
     }
   };
 
-// ... keep your existing return statement with the UI exactly as it is ...
   return (
     <div className="flex flex-col items-center pt-16 px-4 pb-20">
       
-      {/* Hero Section */}
+      {/* --- HERO SECTION --- */}
       <div className="text-center mb-10">
         <h2 className="text-4xl font-extrabold text-gray-900 mb-4">
           Don't just book. <span className="text-blue-600">Bus Karo.</span>
@@ -104,47 +133,37 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-4xl mb-10">
+      {/* --- SEARCH BAR CONTAINER --- */}
+      <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-4xl mb-10 border border-gray-100">
+        
+        {/* Search Form */}
         <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
-          <input 
-            type="text" placeholder="Leaving from (e.g., Delhi)" required
+          <input type="text" placeholder="Leaving from (e.g., Delhi)" required
             className="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={origin} onChange={(e) => setOrigin(e.target.value)}
-          />
-          <input 
-            type="text" placeholder="Going to (e.g., Varanasi)" required
+            value={origin} onChange={(e) => setOrigin(e.target.value)} />
+            
+          <input type="text" placeholder="Going to (e.g., Varanasi)" required
             className="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={destination} onChange={(e) => setDestination(e.target.value)}
-          />
-          <input 
-            type="date" required
-            className="flex-1 p-3 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={date} onChange={(e) => setDate(e.target.value)}
-          />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-md transition-colors">
+            value={destination} onChange={(e) => setDestination(e.target.value)} />
+            
+          <input type="date" required
+            className="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={date} onChange={(e) => setDate(e.target.value)} />
+            
+          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-md transition-colors shadow-sm">
             {isSearching ? "Searching..." : "Search Buses"}
           </button>
         </form>
-        {/* Search Bar Container */}
-      <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-4xl mb-10">
-        <form onSubmit={handleSearch} className="...">
-           {/* ... your existing inputs and search button ... */}
-        </form>
 
-        {/* --- NEW: Recent Searches Visual --- */}
+        {/* --- LOGGED-IN RECENT SEARCHES CHIPS --- */}
         {recentSearches.length > 0 && (
           <div className="mt-6 flex items-center gap-3 w-full border-t pt-4">
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Recent:</span>
             <div className="flex flex-wrap gap-2">
               {recentSearches.map((search, idx) => (
                 <button 
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    setOrigin(search.origin);
-                    setDestination(search.destination);
-                  }}
+                  key={idx} type="button"
+                  onClick={() => { setOrigin(search.origin); setDestination(search.destination); }}
                   className="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-medium border border-blue-200 transition-colors"
                 >
                   {search.origin} ➔ {search.destination}
@@ -154,36 +173,102 @@ export default function Home() {
           </div>
         )}
       </div>
-      </div>
 
-      {/* Results Section */}
+      {/* --- ADVANCED SEARCH RESULTS UI --- */}
       {hasSearched && !isSearching && (
         <div className="w-full max-w-4xl">
-          <h3 className="text-2xl font-bold mb-4 text-gray-800">
-            Available Buses for {origin} to {destination}
+          <h3 className="text-2xl font-bold mb-6 text-gray-800">
+            Available Buses for <span className="text-blue-600">{origin}</span> to <span className="text-blue-600">{destination}</span>
           </h3>
           
-          <div className="flex flex-col gap-4">
-            {results.map((bus) => (
-              <div key={bus.id} className="bg-white p-6 rounded-lg shadow border border-gray-100 flex flex-col md:flex-row justify-between items-center transition-transform hover:scale-[1.01]">
+          <div className="flex flex-col gap-8">
+            {results.map((bus, index) => (
+              <div key={bus.id}>
                 
-                {/* Bus Details */}
-                <div className="mb-4 md:mb-0">
-                  <h4 className="text-xl font-bold text-gray-900">{bus.operator}</h4>
-                  <p className="text-gray-500">Departure: <span className="font-semibold text-gray-800">{bus.departure}</span></p>
-                  <p className="text-sm text-gray-400 mt-1">Found on {bus.platform}</p>
+                {/* 1. THE ADVANCED BUS CARD */}
+                <div className="bg-white p-0 rounded-xl shadow border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                  
+                  {/* Card Header: Bus Info & Price Meter Visual */}
+                  <div className="bg-gray-50 p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center">
+                    <div>
+                      <h4 className="text-2xl font-bold text-gray-900">{bus.operator}</h4>
+                      <p className="text-gray-600 font-medium mt-1">{bus.bus_type} • Departure: {bus.departure}</p>
+                      {bus.savings_percentage > 0 && (
+                        <p className="text-sm text-green-600 font-bold mt-2 bg-green-50 px-3 py-1 rounded-full inline-block border border-green-200">
+                          🔥 {bus.savings_percentage}% cheaper than average!
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* The Visual Price Meter */}
+                    <div className="mt-4 md:mt-0 text-right w-full md:w-auto">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Market Price Meter</p>
+                      <div className="w-full md:w-40 h-2 bg-gray-200 rounded-full overflow-hidden flex relative">
+                        <div className="bg-green-500 h-full w-1/3"></div>
+                        <div className="bg-yellow-400 h-full w-1/3"></div>
+                        <div className="bg-red-500 h-full w-1/3 opacity-30"></div>
+                        {/* The Indicator Needle */}
+                        <div className={`absolute top-0 h-full w-1 bg-black ${bus.savings_percentage > 10 ? 'left-[15%]' : bus.savings_percentage > 0 ? 'left-[50%]' : 'left-[85%]'}`}></div>
+                      </div>
+                      <p className="text-xs font-bold text-gray-700 mt-1">Avg: ₹{bus.average_market_price}</p>
+                    </div>
+                  </div>
+
+                  {/* Card Body: Platform Comparison List & Booking Action */}
+                  <div className="p-6 bg-white">
+                    <p className="text-xs text-gray-500 mb-4 uppercase tracking-wider font-semibold">Compare Booking Platforms</p>
+                    <div className="space-y-4">
+                      {bus.platforms.map((platform, idx) => (
+                        <div key={idx} className="flex flex-col md:flex-row justify-between items-center p-4 border rounded-lg hover:border-blue-400 transition-colors bg-gray-50/50">
+                          
+                          <div className="flex-1 w-full">
+                            <p className="font-bold text-lg text-gray-800">{platform.name}</p>
+                            <div className="flex gap-3 mt-1 text-sm items-center">
+                              {platform.coupon !== "NONE" && (
+                                <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded border border-orange-200 font-mono">
+                                  Use Code: {platform.coupon}
+                                </span>
+                              )}
+                              <span className={typeof platform.seats_left === 'number' && platform.seats_left < 10 ? "text-red-600 font-bold" : "text-gray-500"}>
+  {platform.seats_left} seats left
+  </span>
+                            </div>
+                          </div>
+
+                          <div className="flex w-full md:w-auto items-center justify-between md:justify-end gap-6 mt-4 md:mt-0">
+                            <div className="text-right">
+                              {platform.original_price > platform.price && (
+                                <p className="text-sm text-gray-400 line-through">₹{platform.original_price}</p>
+                              )}
+                              <p className="text-2xl font-extrabold text-gray-900">₹{platform.price}</p>
+                            </div>
+                            {/* The "Copy Details & Book" Action Button */}
+                            <button 
+                              onClick={() => handleCopyAndBook(platform.link)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-bold shadow transition flex items-center gap-2"
+                            >
+                              Book Here ➔
+                            </button>
+                          </div>
+
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
                 </div>
 
-                {/* Price and Action */}
-                <div className="flex flex-col items-end">
-                  <p className="text-3xl font-extrabold text-green-600 mb-2">₹{bus.price}</p>
-                  <button 
-                    onClick={() => handleCopyAndBook(bus.link)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-semibold shadow-sm transition-colors"
-                  >
-                    Copy Details & Book ➔
-                  </button>
-                </div>
+                {/* 2. THE ADSENSE INJECTION (After every 3rd bus) */}
+                {(index + 1) % 3 === 0 && (
+                   <div className="mt-8 mb-4 border-y border-gray-200 py-4 bg-gray-50 rounded-lg">
+                      <span className="text-xs text-gray-400 uppercase tracking-widest text-center block mb-2">Advertisement</span>
+                      <AdBanner 
+                        dataAdSlot="1234567890" // Replace this with your actual AdSense Slot ID
+                        dataAdFormat="auto" 
+                        dataFullWidthResponsive={true} 
+                      />
+                   </div>
+                )}
 
               </div>
             ))}
