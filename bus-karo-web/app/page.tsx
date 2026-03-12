@@ -46,18 +46,24 @@ export default function Home() {
     const fetchUserAndHistory = async () => {
       const token = localStorage.getItem("token");
       if (token) {
-        // Simulating the backend fetch for now
         setUser({
-          full_name: localStorage.getItem("userName") || "Rakshit",
+          full_name: localStorage.getItem("userName") || "User",
           phone_number: "Stored Securely",
           email: "user@example.com"
         });
         
-        // Simulating history fetch
-        setRecentSearches([
-          { origin: "Delhi", destination: "Jaipur" },
-          { origin: "Lucknow", destination: "Varanasi" }
-        ]);
+        // --- THE REAL API CALL ---
+        try {
+          const res = await fetch("https://venomvampire-bus-karo-api.hf.space/api/user/history", {
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const history = await res.json();
+            setRecentSearches(history);
+          }
+        } catch (error) {
+          console.error("Failed to load history");
+        }
       }
     };
     fetchUserAndHistory();
@@ -69,41 +75,42 @@ export default function Home() {
     setIsSearching(true);
     setHasSearched(true);
 
-    // Simulating the advanced API response
-    setTimeout(() => {
-      setResults([
-        {
-          id: "1", operator: "Zingbus Premium", bus_type: "A/C Sleeper (2+1)", departure: "21:30",
-          average_market_price: 580, cheapest_price: 499, savings_percentage: 14,
-          platforms: [
-            { name: "redBus", price: 499, original_price: 600, coupon: "REDBUS20", seats_left: 12, link: "https://redbus.in" },
-            { name: "AbhiBus", price: 550, original_price: 600, coupon: "ABHIFIRST", seats_left: 12, link: "https://abhibus.com" }
-          ]
+    const token = localStorage.getItem("token");
+
+    // 1. Save the search history in the background (if logged in)
+    if (token) {
+      fetch("https://venomvampire-bus-karo-api.hf.space/api/user/history", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
-        {
-          id: "2", operator: "IntrCity SmartBus", bus_type: "Volvo Multi-Axle", departure: "22:15",
-          average_market_price: 800, cheapest_price: 750, savings_percentage: 6,
-          platforms: [
-            { name: "Paytm", price: 750, original_price: 850, coupon: "PAYTMBUS", seats_left: 4, link: "https://paytm.com" }
-          ]
-        },
-        {
-          id: "3", operator: "RSRTC Express", bus_type: "Non A/C Seater", departure: "23:00",
-          average_market_price: 350, cheapest_price: 300, savings_percentage: 14,
-          platforms: [
-            { name: "redBus", price: 300, original_price: 350, coupon: "NONE", seats_left: 20, link: "https://redbus.in" }
-          ]
-        },
-        {
-          id: "4", operator: "NueGo Electric", bus_type: "A/C Seater", departure: "23:45",
-          average_market_price: 600, cheapest_price: 500, savings_percentage: 16,
-          platforms: [
-            { name: "AbhiBus", price: 500, original_price: 650, coupon: "NUEGO50", seats_left: 8, link: "https://abhibus.com" }
-          ]
+        body: JSON.stringify({ origin, destination })
+      }).catch(err => console.error("History save failed", err));
+    }
+
+    // 2. Fetch the REAL live bus data!
+    try {
+      const res = await fetch(`https://venomvampire-bus-karo-api.hf.space/api/search?origin=${origin}&destination=${destination}&date=${date}`);
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === "success") {
+          setResults(data.buses);
+        } else {
+          alert("Could not find buses for this route.");
+          setResults([]);
         }
-      ]);
+      } else {
+        alert("Error connecting to the aggregator engine.");
+        setResults([]);
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+      alert("Failed to fetch live prices.");
+    } finally {
       setIsSearching(false);
-    }, 1500);
+    }
   };
 
   // 3. Handle Booking Auto-Fill Logic
