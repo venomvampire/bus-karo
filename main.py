@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.middleware.cors import CORSMiddleware # <--- 1. ADD THIS IMPORT
 from pydantic import BaseModel
 import jwt
 import uuid
@@ -7,12 +8,23 @@ import uuid
 # Import our custom modules
 from scraper import advanced_scrape_platform, scrape_pnr_status
 from link_builder import generate_deep_link
-from database import get_db_pool, save_price_history
+from database import get_db_pool
 from auth import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
 
 app = FastAPI(title="Bus Karo API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://bus-karo-sigma.vercel.app/"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# -------------------------------------------
+
 db_pool = None
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
+
 
 @app.on_event("startup")
 async def startup_event():
